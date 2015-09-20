@@ -1,0 +1,11 @@
+{
+  "name": "emotion_xml_parser",
+  "version": "0.1.1",
+  "description": "An example module to illustrate the usage of a package.json",
+  "author": "a name",
+  "keywords": [],
+  "dependencies": {
+    "xml2js": "*"
+  },
+  "license": "MIT"
+}
