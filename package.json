@@ -5,7 +5,8 @@
   "author": "a name",
   "keywords": [],
   "dependencies": {
-    "xml2js": "*"
+    "xml2js": "*",
+	"express.io":"*"
   },
   "license": "MIT"
 }
