@@ -6,19 +6,65 @@
         <title>TowerSim</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
 		<style>
+			body{
+				font-family: Helvetica, Arial, sans-serif;
+				background-color: #444;
+			}
 			#windows {
-				float: left;
+				width:360px; 
+				margin:0 auto;
+				margin-top:20px;
+				
 			}
 			.window {
 				height:20px;
 				width:20px;
 				float: left;
 				border:1px solid;
+				horizontal-align:center;
+			}
+			#emotions{
+				width:360px; 
+				margin:0 auto;
+				padding-top:50px;
+				text-align:center;
 			}
 			#sceneName{
 				height:20px;
 				width:100%;
 				margin-bottom:10px;
+			}
+			#average{
+				width:360px; 
+				margin:0 auto;
+				text-align:center;
+			}
+			#average div{
+				height:20px;
+				
+				float:left;
+			}
+			#positive,#negative{
+			border:1px solid;
+			}
+			#average>div{
+				width:100%;
+			}
+			.bartitle{
+			width:100px;
+			border:0px !important;
+			}
+			#posHigh{
+				background-color: #444;
+			}
+			#posLow{
+				background-color: #555;
+			}
+			#negHigh{
+				background-color: #666;
+			}
+			#negLow{
+				background-color: #777;
 			}
 		</style>
 		<!-- socket io -->
@@ -42,6 +88,40 @@
 			  }  
 		  })
 		  
+		  // Emit ready event.
+		socket.emit('ready');
+
+		// Listen for the talk event.
+		socket.on('emotionData', function(data) {
+			createWordcloud(data);
+			createaverage(data);
+		});
+		  
+		function createWordcloud(data){
+			// get WordArray
+			var words=data.message.DnnEmotions.SingleEmotions[0].Emotion;
+
+			var maxValence=3;
+			var maxArousal=3;
+			// display Wordarray
+			for(var i=0; i< words.length;i++){
+				
+				var valence=Math.max(-1*maxValence,Math.min(maxValence,words[i].Valence[0]));	
+				var arousal=Math.min(maxArousal,words[i].Arousal[0]);	
+				var color=getColorForPercentage((maxValence+valence)/(maxValence*2));
+				var colorstring="rgb("+color[0]+","+color[1]+","+color[2]+")";
+				var textSize=(arousal/maxArousal)*(arousal/maxArousal)*40+6;
+				$("#emotions").append("<span style='color:"+colorstring+";font-size:"+textSize+"px'> "+words[i].Word+" </span>")
+			}
+		}		
+		function createaverage(data){
+			var quadrants=data.message.DnnEmotions.Percent[0];
+			$("#posHigh").width(260*parseInt(quadrants.PositiveValenceAndHighArousal[0])/100);
+			$("#posLow").width(260*parseInt(quadrants.PositiveValenceAndLowArousal[0])/100);
+			$("#negHigh").width(260*parseInt(quadrants.NegativeValenceAndHighArousal[0])/100);
+			$("#negLow").width(260*parseInt(quadrants.NegativeValenceAndLowArousal[0])/100);
+		}
+		  
 		  $(document).ready(function() {
 			//add windows to main div
 			for(var i=0;i<16;i++){
@@ -49,10 +129,45 @@
 			}
 		  });
 		  
+		  
+			/**********************************
+			* Helpers
+			************************************/
+
+			var percentColors = [
+				{ pct: 0.0, color: { r: 0xff, g: 0x00, b: 0 } },
+				{ pct: 0.5, color: { r: 0xff, g: 0xff, b: 0 } },
+				{ pct: 1.0, color: { r: 0x00, g: 0xff, b: 0 } } ];
+
+			var getColorForPercentage = function(pct) {
+				for (var i = 1; i < percentColors.length - 1; i++) {
+					if (pct < percentColors[i].pct) {
+						break;
+					}
+				}
+				var lower = percentColors[i - 1];
+				var upper = percentColors[i];
+				var range = upper.pct - lower.pct;
+				var rangePct = (pct - lower.pct) / range;
+				var pctLower = 1 - rangePct;
+				var pctUpper = rangePct;
+				var color = {
+					r: Math.floor(lower.color.r * pctLower + upper.color.r * pctUpper),
+					g: Math.floor(lower.color.g * pctLower + upper.color.g * pctUpper),
+					b: Math.floor(lower.color.b * pctLower + upper.color.b * pctUpper)
+				};
+				return [color.r, color.g, color.b];
+			}  
 		</script>
 	</head>
 	<body>
-		<div id="sceneName"></div>
 		<div id="windows"></div>
+		<div class="headline">einzelne Wörter<div>
+		<div id="emotions"></div>
+		<div class="headline">Tagesdurchschnitt<div>
+		<div id="average">
+			<div id="positive"><div class="bartitle">positiv</div><div id="posHigh"></div><div id="posLow"></div> </div>
+			<div id="negative"><div class="bartitle">negativ</div><div id="negHigh"></div><div id="negLow"></div> </div>
+		</div>
 	</body>
 </html>

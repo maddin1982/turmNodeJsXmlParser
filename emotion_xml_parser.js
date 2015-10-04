@@ -7,6 +7,7 @@ var enableWebInterface=true
 var date=new Date()
 requestXmlFile(date)
 var currentFrame=getBasicFrame();
+var JSONData={};
 
 if(enableWebInterface){
 	var express = require('express.io');
@@ -14,11 +15,16 @@ if(enableWebInterface){
 	//open socket
 	app.http().io();
 	app.use(express.static(__dirname + '/towerSimulation'));
-	var server = app.listen(3001, function() {
+	var server = app.listen(3002, function() {
 		var host = server.address().address;
 		var port = server.address().port;
 		console.log('tower app listening at http://%s:%s', host, port);
 	});
+	app.io.route('ready', function(req) {
+		req.io.emit('emotionData', {
+			message:JSONData
+		})
+	})
 }
 
 function formatDateString(date){
@@ -54,6 +60,7 @@ function requestXmlFile(date){
 		res.on('end', function() {
 		  parseString(xml, function (err, result) {
 			createAnimation(result);
+			JSONData = result;
 		  });
 		});
 	});
@@ -67,7 +74,7 @@ function requestXmlFile(date){
 }
 
 function createAnimation(emotionalData){
-	console.log(JSON.stringify(emotionalData));
+	//console.log(JSON.stringify(emotionalData));
 	
 	
 	/* play all words with arousal als luminence and valence as color*/
