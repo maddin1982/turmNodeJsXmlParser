@@ -1,3 +1,10 @@
+var PORT = 33333;
+//var HOST = '0.0.0.0';
+var HOST = '37.187.39.90';
+
+var dgram = require('dgram');
+var client = dgram.createSocket('udp4');
+
 var parseString = require('xml2js').parseString;
 var http = require('http')
 var xml = '';
@@ -107,10 +114,10 @@ function createAnimation(emotionalData){
 			/*increase speed*/
 			if(i%emotions.length==0){
 				if(slowDownAgain){
-					speed=Math.floor(speed*1.1);
+					speed=Math.floor(speed*1.5);
 				}
 				else{
-					speed=Math.floor(speed*0.95);
+					speed=Math.floor(speed*0.5);
 				}
 			}
 			if(speed>500){
@@ -166,22 +173,43 @@ function generateHighArousalFrame(emotionalData){
 
 function rotateFrames(){
 	var rotateTime=20;
-	var fps=15;
+	var delay=300;
+	var fadeoutCounter=100;
 	var tickCount=0;
 	var currentframeCopy=JSON.parse(JSON.stringify(currentFrame));
 	
-	var interval=setInterval(function () {tick()}, 1000/fps);
+	//var interval=setInterval(function () {tick()}, 1000/fps);
+	//recursive tick
 	function tick() {
-		tickCount++;
 		
+		rotateTime-=delay/1000;
+		tickCount++;
+		delay*=0.98;
 		for(var i=0;i<currentFrame.length;i++){
 			currentFrame[i]=currentframeCopy[(i+tickCount)%16]
 		}
-		sendFrame(currentFrame);
-		if(tickCount>fps*rotateTime){
-			clearInterval(interval)
+		if(rotateTime<5.2){
+			//clearInterval(interval)
+			/* EOF */
+			//fadeout and exit
+			console.log("fadeoutCounter")
+			console.log("fadeoutCounter "+fadeoutCounter)	
+			for(var i=0;i<currentFrame.length;i++){
+				currentFrame[i][0]*=0.9;
+				currentFrame[i][1]*=0.9;
+				currentFrame[i][2]*=0.9;
+			}
+			//console.log(JSON.stringify(currentFrame))
+			fadeoutCounter--;
+			if(fadeoutCounter<0){
+				process.exit();
+			}
 		}
+		sendFrame(currentFrame);
+		setTimeout(function(){tick()},delay);
+	
 	}
+	tick();
 }
 
 function fadeToColor(frame){
@@ -216,6 +244,25 @@ function getBasicFrame(){
 }
 
 function sendFrame(frame){
+	
+	
+	var stringArray="";
+	for(var i=0;i<frame.length;i++){
+		if(i>0){
+			stringArray+="|"
+		}
+		stringArray+=frame[i][0]+","+frame[i][1]+","+frame[i][2];
+		
+	}
+
+	//var message = new Buffer('[kazoosh]||200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55|200,100,55');
+	var message = new Buffer('[kazoosh]||'+stringArray);
+	
+	client.send(message, 0, message.length, PORT, HOST, function(err, bytes) {
+		if (err) throw err;
+		//console.log('UDP message sent to ' + HOST +':'+ PORT);
+		//client.close();
+	});
 	if(enableWebInterface){
 		var joined=[];
 		for(var i=0;i<frame.length;i++){
