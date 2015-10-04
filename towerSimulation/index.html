@@ -23,25 +23,24 @@
 				border:1px solid;
 				horizontal-align:center;
 			}
-			#emotions{
+			#emotions, .headline, #average{
 				width:360px; 
 				margin:0 auto;
-				padding-top:50px;
 				text-align:center;
 			}
+			.headline{
+				padding-top:50px;
+				margin-bottom:30px !important;
+				color:#eee;
+			}
+
 			#sceneName{
 				height:20px;
 				width:100%;
 				margin-bottom:10px;
 			}
-			#average{
-				width:360px; 
-				margin:0 auto;
-				text-align:center;
-			}
 			#average div{
 				height:20px;
-				
 				float:left;
 			}
 			#positive,#negative{
@@ -55,17 +54,20 @@
 			border:0px !important;
 			}
 			#posHigh{
-				background-color: #444;
+				background-color: #81EA00;
 			}
 			#posLow{
-				background-color: #555;
+				background-color: #81EA00;
+				opacity:0.4;
 			}
 			#negHigh{
-				background-color: #666;
+				background-color: #FC2E1B;
 			}
 			#negLow{
-				background-color: #777;
+				background-color: #FC2E1B;
+				opacity:0.4;
 			}
+
 		</style>
 		<!-- socket io -->
 		<script src="/socket.io/socket.io.js"></script>
@@ -135,9 +137,10 @@
 			************************************/
 
 			var percentColors = [
-				{ pct: 0.0, color: { r: 0xff, g: 0x00, b: 0 } },
-				{ pct: 0.5, color: { r: 0xff, g: 0xff, b: 0 } },
-				{ pct: 1.0, color: { r: 0x00, g: 0xff, b: 0 } } ];
+				{ pct: 0.0, color: { r: 0xFC, g: 0x2E, b: 0x1B } },
+				//{ pct: 0.5, color: { r: 0xB7, g: 0xF0, b: 0xFF } },
+				{ pct: 0.5, color: { r: 0xFF, g: 0xFC, b: 0xA5 } },
+				{ pct: 1.0, color: { r: 0x81, g: 0xEA, b: 0 } } ];
 
 			var getColorForPercentage = function(pct) {
 				for (var i = 1; i < percentColors.length - 1; i++) {
@@ -162,9 +165,9 @@
 	</head>
 	<body>
 		<div id="windows"></div>
-		<div class="headline">einzelne Wörter<div>
+		<div class="headline">Wörter des Tages<div>
 		<div id="emotions"></div>
-		<div class="headline">Tagesdurchschnitt<div>
+		<div class="headline">Tendenz<div>
 		<div id="average">
 			<div id="positive"><div class="bartitle">positiv</div><div id="posHigh"></div><div id="posLow"></div> </div>
 			<div id="negative"><div class="bartitle">negativ</div><div id="negHigh"></div><div id="negLow"></div> </div>
