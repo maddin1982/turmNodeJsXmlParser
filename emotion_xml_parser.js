@@ -1,6 +1,6 @@
 var PORT = 33333;
-//var HOST = '0.0.0.0';
-var HOST = '37.187.39.90';
+var HOST = '0.0.0.0';
+//var HOST = '37.187.39.90';
 
 var dgram = require('dgram');
 var client = dgram.createSocket('udp4');
@@ -155,16 +155,16 @@ function generateHighArousalFrame(emotionalData){
 
 	for(var i=0;i<frame.length;i++){
 		if((i/frame.length)>=0){
-			frame[i]=[30,240,20]
+			frame[i]=[129,234,0]
 		}
 		if((i/frame.length)>(p_h/100)){
-			frame[i]=[80,180,80]
+			frame[i]=[92,134,41]
 		}
 		if((i/frame.length)>(p_l/100)){
-			frame[i]=[255,20,20]
+			frame[i]=[252,46,27]
 		}
 		if((i/frame.length)>=(n_h/100)){
-			frame[i]=[180,80,80]
+			frame[i]=[142,59,52]
 		}
 	}
 	console.log(frame)
@@ -175,6 +175,7 @@ function rotateFrames(){
 	var rotateTime=20;
 	var delay=300;
 	var fadeoutCounter=100;
+	var fadeoutCounterCurrent=fadeoutCounter
 	var tickCount=0;
 	var currentframeCopy=JSON.parse(JSON.stringify(currentFrame));
 	
@@ -191,20 +192,21 @@ function rotateFrames(){
 		if(rotateTime<5.2){
 			//clearInterval(interval)
 			/* EOF */
-			//fadeout and exit
-			console.log("fadeoutCounter")
-			console.log("fadeoutCounter "+fadeoutCounter)	
+			//fadeout and exit	
+				
 			for(var i=0;i<currentFrame.length;i++){
-				currentFrame[i][0]*=0.9;
-				currentFrame[i][1]*=0.9;
-				currentFrame[i][2]*=0.9;
+				currentFrame[i][0]=Math.floor(currentFrame[i][0]*(fadeoutCounterCurrent/fadeoutCounter));
+				currentFrame[i][1]=Math.floor(currentFrame[i][1]*(fadeoutCounterCurrent/fadeoutCounter));
+				currentFrame[i][2]=Math.floor(currentFrame[i][2]*(fadeoutCounterCurrent/fadeoutCounter));
 			}
+			sendFrame(currentFrame);
 			//console.log(JSON.stringify(currentFrame))
-			fadeoutCounter--;
-			if(fadeoutCounter<0){
+			fadeoutCounterCurrent--;
+			if(fadeoutCounterCurrent<0){
 				process.exit();
 			}
 		}
+		console.log("currentFrame "+JSON.stringify(currentFrame))	
 		sendFrame(currentFrame);
 		setTimeout(function(){tick()},delay);
 	
