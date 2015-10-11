@@ -83,8 +83,6 @@
 		  })
   
 		  socket.on('newFrame', function (data) {
-			  //console.log(data)
-			  
 			  for(var i=0;i<data.length;i=i+3){
 				var currwindow=i/3;
 				$("#window"+currwindow).css("background-color","rgb("+data[i]+","+data[i+1]+","+data[i+2]+")")

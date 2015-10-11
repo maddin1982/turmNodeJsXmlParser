@@ -80,65 +80,137 @@ function requestXmlFile(date){
 	});
 }
 
+function setRGBForAllFrames(r,g,b,a){
+	if(!a)a=1;
+	for (var i=0;i<16;i++){
+		currentFrame[i]=[Math.floor(r*a),Math.floor(g*a),Math.floor(b*a)];
+	}
+}
+
 function createAnimation(emotionalData){
-	//console.log(JSON.stringify(emotionalData));
 
 	/* play all words with arousal als luminence and valence as color*/
 	var maxValence=4;
 	var maxArousal=4;
+	animationTime=1000;
 	
-	var fps=20;
 	var emotions=emotionalData.DnnEmotions.SingleEmotions[0].Emotion;
-	
 	var i=0;
-	
-	speed=500;
-	var slowDownAgain=false;
-	
+
 	function animateSingleEmotions(emotion){
+		i++;
 		var valence=Math.max(-1*maxValence,Math.min(maxValence,emotion.Valence[0]));
 		var arousal=Math.min(maxArousal,emotion.Arousal[0]);
 		valenceNormalized=(maxValence+valence)/(maxValence*2) // 0-1
 		arousalNormalized=arousal/maxArousal; // 0-1
-		
-		currentFrame[i%16]=getColorForPercentage((maxValence+valence)/(maxValence*2))
-		currentFrame[i%16][0]=Math.floor(currentFrame[i%16][0]*arousalNormalized);
-		currentFrame[i%16][1]=Math.floor(currentFrame[i%16][1]*arousalNormalized);
-		currentFrame[i%16][2]=Math.floor(currentFrame[i%16][2]*arousalNormalized);
-		console.log(currentFrame[i%16]);
-		sendFrame(currentFrame);
-		
-		setTimeout(function(){ 
-			i++;
+		var c=getColorForPercentage(valenceNormalized);
+		//calculate frequency from arousal and create sine wave
+		var currenttime=0;
+		var currentArousalIterator=0;
+		var brightnessMultiplicator=0;
+		var fadeIn=true;
+		var fadeOut=false;
+		var interval= setInterval(function(){
+			currenttime+=40;
 			
-			/*increase speed*/
-			if(i%emotions.length==0){
-				if(slowDownAgain){
-					speed=Math.floor(speed*1.5);
-				}
-				else{
-					speed=Math.floor(speed*0.5);
-				}
-			}
-			if(speed>500){
-				/*stop everything and fade to */
-				generateHighArousalFrame(emotionalData);
+			brightness=((Math.sin(currentArousalIterator+=(arousalNormalized*arousalNormalized*arousalNormalized)))+1)/2;
+			
+			
+			setRGBForAllFrames(c[0],c[1],c[2],(0.5+brightness/2)*brightnessMultiplicator);
+			
+			if(brightnessMultiplicator<1&&fadeIn){
+				brightnessMultiplicator+=0.1;
 			}
 			else{
-				if(speed>50){
-					/*call again with decreased speed*/
-					animateSingleEmotions(emotions[i%emotions.length])
-				}
-				else{
-					/*turn around*/
-					slowDownAgain=true;
-					animateSingleEmotions(emotions[i%emotions.length])
-				}
+			fadeIn=false;
 			}
-		}, speed);
+
+			if(currenttime>animationTime){
+				brightnessMultiplicator-=0.1;
+				fadeOut=true;
+			}
+			if(brightnessMultiplicator<=0){
+				fadeout=false;
+				clearInterval(interval);
+				//animate next emotion
+				animateSingleEmotions(emotions[i])
+			}
+			
+			console.log("currentFrame: ");
+			console.log(currentFrame);
+			sendFrame(currentFrame);
+		}, 40);
 	}
-	animateSingleEmotions(emotions[i%emotions.length]);
+	//all emotions
+		if(i+1>emotions.length){
+			generateHighArousalFrame(emotionalData);
+		}
+		else{
+			animateSingleEmotions(emotions[i]);
+		}
+	
 }
+
+// function createAnimation(emotionalData){
+	// //console.log(JSON.stringify(emotionalData));
+
+	// /* play all words with arousal als luminence and valence as color*/
+	// var maxValence=4;
+	// var maxArousal=4;
+	
+	// var fps=20;
+	// var emotions=emotionalData.DnnEmotions.SingleEmotions[0].Emotion;
+	
+	// var i=0;
+	
+	// speed=500;
+	// var slowDownAgain=false;
+	
+	// function animateSingleEmotions(emotion){
+	
+		// var valence=Math.max(-1*maxValence,Math.min(maxValence,emotion.Valence[0]));
+		// var arousal=Math.min(maxArousal,emotion.Arousal[0]);
+		// valenceNormalized=(maxValence+valence)/(maxValence*2) // 0-1
+		// arousalNormalized=arousal/maxArousal; // 0-1
+		
+		// currentFrame[i%16]=getColorForPercentage((maxValence+valence)/(maxValence*2))
+		// currentFrame[i%16][0]=Math.floor(currentFrame[i%16][0]*arousalNormalized);
+		// currentFrame[i%16][1]=Math.floor(currentFrame[i%16][1]*arousalNormalized);
+		// currentFrame[i%16][2]=Math.floor(currentFrame[i%16][2]*arousalNormalized);
+		// console.log(currentFrame[i%16]);
+		// sendFrame(currentFrame);
+		
+		// setTimeout(function(){ 
+			// i++;
+			
+			// /*increase speed*/
+			// if(i%emotions.length==0){
+				// if(slowDownAgain){
+					// speed=Math.floor(speed*1.5);
+				// }
+				// else{
+					// speed=Math.floor(speed*0.5);
+				// }
+			// }
+			// if(speed>500){
+				// /*stop everything and fade to */
+				// generateHighArousalFrame(emotionalData);
+			// }
+			// else{
+				// if(speed>50){
+					// /*call again with decreased speed*/
+					// animateSingleEmotions(emotions[i%emotions.length])
+				// }
+				// else{
+					// /*turn around*/
+					// slowDownAgain=true;
+					// animateSingleEmotions(emotions[i%emotions.length])
+				// }
+			// }
+		// }, speed);
+	// }
+	// animateSingleEmotions(emotions[i%emotions.length]);
+// }
 
 function generateHighArousalFrame(emotionalData){
 	var frame=getBasicFrame();
