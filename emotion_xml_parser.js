@@ -114,30 +114,29 @@ function createAnimation(emotionalData){
 			currenttime+=40;
 			
 			brightness=((Math.sin(currentArousalIterator+=(arousalNormalized*arousalNormalized*arousalNormalized)))+1)/2;
-			
-			
+
 			setRGBForAllFrames(c[0],c[1],c[2],(0.5+brightness/2)*brightnessMultiplicator);
 			
-			if(brightnessMultiplicator<1&&fadeIn){
+			if(brightnessMultiplicator<1&&fadeIn==true){
 				brightnessMultiplicator+=0.1;
 			}
-			else{
-			fadeIn=false;
+			else if(fadeIn==true){
+				fadeIn=false;
+				console.log("stop fadein")
 			}
 
-			if(currenttime>animationTime){
+			if(currenttime>animationTime&&fadeOut==false){
 				brightnessMultiplicator-=0.1;
 				fadeOut=true;
+				console.log("stop fadeout")
 			}
 			if(brightnessMultiplicator<=0){
 				fadeout=false;
 				clearInterval(interval);
 				//animate next emotion
+				console.log("next emotion "+i)
 				animateSingleEmotions(emotions[i])
 			}
-			
-			console.log("currentFrame: ");
-			console.log(currentFrame);
 			sendFrame(currentFrame);
 		}, 40);
 	}
