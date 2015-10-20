@@ -51,12 +51,19 @@ function getUrlOfXMLFileByDate(date){
 	return 'http://wwwpub.zih.tu-dresden.de/~hauthal/DNN-Tweets-Emotions/XmlFiles/'+filename+'.xml';
 }
 function requestXmlFile(date){
-	console.log("request xml for date "+ formatDateString(date))
+	//console.log("request xml for date "+ formatDateString(date))
 	/* MAKE REQUEST TO SERVER */
+	
+	var retryCounter=0;
+	
 	var req = http.get(getUrlOfXMLFileByDate(date), function(res) {
 	
 		if (res.statusCode === 404 || res.statusCode === 403) {
 			console.log("no xml file for date "+ formatDateString(date))
+			retryCounter++;
+			if(retryCounter>10)
+				process.exit();
+			
 			requestXmlFile(new Date(date.setDate(date.getDate()-1)))
 			return;
 		}
@@ -65,6 +72,7 @@ function requestXmlFile(date){
 			xml += chunk;
 		});
 		res.on('end', function() {
+		 console.log("message complete")
 		  parseString(xml, function (err, result) {
 			createAnimation(result);
 			JSONData = result;
@@ -74,6 +82,9 @@ function requestXmlFile(date){
 
 	/* ON ERROR TRY TO GET XML OF DAY BEFORE */
 	req.on('error', function(err) {
+		retryCounter++;
+		if(retryCounter>10)
+			process.exit();
 		console.log("no xml file for date "+ formatDateString(date))
 	  // try day before
 	  requestXmlFile(date.setDate(date.getDate()-1))
@@ -81,20 +92,25 @@ function requestXmlFile(date){
 }
 
 function setRGBForAllFrames(r,g,b,a){
+	console.log(" r"+Math.floor(r*a)+" g"+Math.floor(g*a)+" b"+Math.floor(b*a)+" a"+a)
 	if(!a)a=1;
 	for (var i=0;i<16;i++){
 		currentFrame[i]=[Math.floor(r*a),Math.floor(g*a),Math.floor(b*a)];
+		
 	}
 }
 
 function createAnimation(emotionalData){
-
+ console.log("create animation")
 	/* play all words with arousal als luminence and valence as color*/
 	var maxValence=4;
 	var maxArousal=4;
-	animationTime=1000;
+	animationTime=3000;
 	
 	var emotions=emotionalData.DnnEmotions.SingleEmotions[0].Emotion;
+	if(emotions.length==0||!emotions){
+		process.exit();
+	}
 	var i=0;
 
 	function animateSingleEmotions(emotion){
@@ -107,46 +123,47 @@ function createAnimation(emotionalData){
 		//calculate frequency from arousal and create sine wave
 		var currenttime=0;
 		var currentArousalIterator=0;
-		var brightnessMultiplicator=0;
+		var brightnessMultiplicator=0.01;
 		var fadeIn=true;
 		var fadeOut=false;
 		var interval= setInterval(function(){
 			currenttime+=40;
 			
-			brightness=((Math.sin(currentArousalIterator+=(arousalNormalized*arousalNormalized*arousalNormalized)))+1)/2;
+			//sinus pulsing 
+			brightness=((Math.sin(currentArousalIterator+=(arousalNormalized*arousalNormalized*arousalNormalized)/3))+1)/2;
 
+			//set color for all windows with sinus brighness
 			setRGBForAllFrames(c[0],c[1],c[2],(0.5+brightness/2)*brightnessMultiplicator);
 			
-			if(brightnessMultiplicator<1&&fadeIn==true){
-				brightnessMultiplicator+=0.1;
+			//console.log("brightnessMultiplicator "+brightnessMultiplicator)
+			if(brightnessMultiplicator>=1){
+				console.log("stop fadein")
+				fadeIn=false;
 			}
 			else if(fadeIn==true){
-				fadeIn=false;
-				console.log("stop fadein")
+				brightnessMultiplicator+=0.05;
 			}
 
-			if(currenttime>animationTime&&fadeOut==false){
-				brightnessMultiplicator-=0.1;
-				fadeOut=true;
-				console.log("stop fadeout")
+			if(currenttime>animationTime){
+				brightnessMultiplicator-=0.05;
 			}
 			if(brightnessMultiplicator<=0){
-				fadeout=false;
 				clearInterval(interval);
 				//animate next emotion
-				console.log("next emotion "+i)
-				animateSingleEmotions(emotions[i])
+				//console.log("next emotion "+i)
+				
+				if(i+1>emotions.length){
+					generateHighArousalFrame(emotionalData);
+				}
+				else{
+					animateSingleEmotions(emotions[i]);
+				}
 			}
 			sendFrame(currentFrame);
 		}, 40);
 	}
 	//all emotions
-		if(i+1>emotions.length){
-			generateHighArousalFrame(emotionalData);
-		}
-		else{
-			animateSingleEmotions(emotions[i]);
-		}
+	animateSingleEmotions(emotions[i]);	
 	
 }
 
@@ -253,10 +270,12 @@ function rotateFrames(){
 	//var interval=setInterval(function () {tick()}, 1000/fps);
 	//recursive tick
 	function tick() {
-		
-		rotateTime-=delay/1000;
+		if(rotateTime>5.2){
+			rotateTime-=delay/1000;
+			delay*=0.98;
+		}
 		tickCount++;
-		delay*=0.98;
+		
 		for(var i=0;i<currentFrame.length;i++){
 			currentFrame[i]=currentframeCopy[(i+tickCount)%16]
 		}
@@ -272,7 +291,7 @@ function rotateFrames(){
 			}
 			sendFrame(currentFrame);
 			//console.log(JSON.stringify(currentFrame))
-			fadeoutCounterCurrent--;
+			fadeoutCounterCurrent-=0.1;
 			if(fadeoutCounterCurrent<0){
 				process.exit();
 			}
