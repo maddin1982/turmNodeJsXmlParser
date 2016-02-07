@@ -1,5 +1,5 @@
 var PORT = 33333;
-var HOST = '0.0.0.0';
+var HOST = '127.0.0.1';
 //var HOST = '37.187.39.90';
 
 var dgram = require('dgram');
@@ -50,11 +50,11 @@ function getUrlOfXMLFileByDate(date){
 	var filename= formatDateString(date)
 	return 'http://wwwpub.zih.tu-dresden.de/~hauthal/DNN-Tweets-Emotions/XmlFiles/'+filename+'.xml';
 }
-function requestXmlFile(date){
+function requestXmlFile(date,retryCounter){
 	//console.log("request xml for date "+ formatDateString(date))
 	/* MAKE REQUEST TO SERVER */
 	
-	var retryCounter=0;
+	var retryCounter=retryCounter || 0;
 	
 	var req = http.get(getUrlOfXMLFileByDate(date), function(res) {
 	
@@ -64,7 +64,7 @@ function requestXmlFile(date){
 			if(retryCounter>10)
 				process.exit();
 			
-			requestXmlFile(new Date(date.setDate(date.getDate()-1)))
+			requestXmlFile(new Date(date.setDate(date.getDate()-1)),retryCounter)
 			return;
 		}
 	
@@ -74,6 +74,7 @@ function requestXmlFile(date){
 		res.on('end', function() {
 		 console.log("message complete")
 		  parseString(xml, function (err, result) {
+			result = removeDoubleValues(result);
 			createAnimation(result);
 			JSONData = result;
 		  });
@@ -87,7 +88,7 @@ function requestXmlFile(date){
 			process.exit();
 		console.log("no xml file for date "+ formatDateString(date))
 	  // try day before
-	  requestXmlFile(date.setDate(date.getDate()-1))
+	  requestXmlFile(date.setDate(date.getDate()-1),retryCounter)
 	});
 }
 
@@ -152,7 +153,7 @@ function createAnimation(emotionalData){
 				//animate next emotion
 				//console.log("next emotion "+i)
 				
-				if(i+1>emotions.length){
+				if(i+1>emotions.length||i>50){
 					generateHighArousalFrame(emotionalData);
 				}
 				else{
@@ -166,67 +167,6 @@ function createAnimation(emotionalData){
 	animateSingleEmotions(emotions[i]);	
 	
 }
-
-// function createAnimation(emotionalData){
-	// //console.log(JSON.stringify(emotionalData));
-
-	// /* play all words with arousal als luminence and valence as color*/
-	// var maxValence=4;
-	// var maxArousal=4;
-	
-	// var fps=20;
-	// var emotions=emotionalData.DnnEmotions.SingleEmotions[0].Emotion;
-	
-	// var i=0;
-	
-	// speed=500;
-	// var slowDownAgain=false;
-	
-	// function animateSingleEmotions(emotion){
-	
-		// var valence=Math.max(-1*maxValence,Math.min(maxValence,emotion.Valence[0]));
-		// var arousal=Math.min(maxArousal,emotion.Arousal[0]);
-		// valenceNormalized=(maxValence+valence)/(maxValence*2) // 0-1
-		// arousalNormalized=arousal/maxArousal; // 0-1
-		
-		// currentFrame[i%16]=getColorForPercentage((maxValence+valence)/(maxValence*2))
-		// currentFrame[i%16][0]=Math.floor(currentFrame[i%16][0]*arousalNormalized);
-		// currentFrame[i%16][1]=Math.floor(currentFrame[i%16][1]*arousalNormalized);
-		// currentFrame[i%16][2]=Math.floor(currentFrame[i%16][2]*arousalNormalized);
-		// console.log(currentFrame[i%16]);
-		// sendFrame(currentFrame);
-		
-		// setTimeout(function(){ 
-			// i++;
-			
-			// /*increase speed*/
-			// if(i%emotions.length==0){
-				// if(slowDownAgain){
-					// speed=Math.floor(speed*1.5);
-				// }
-				// else{
-					// speed=Math.floor(speed*0.5);
-				// }
-			// }
-			// if(speed>500){
-				// /*stop everything and fade to */
-				// generateHighArousalFrame(emotionalData);
-			// }
-			// else{
-				// if(speed>50){
-					// /*call again with decreased speed*/
-					// animateSingleEmotions(emotions[i%emotions.length])
-				// }
-				// else{
-					// /*turn around*/
-					// slowDownAgain=true;
-					// animateSingleEmotions(emotions[i%emotions.length])
-				// }
-			// }
-		// }, speed);
-	// }
-	// animateSingleEmotions(emotions[i%emotions.length]);
-// }
 
 function generateHighArousalFrame(emotionalData){
 	var frame=getBasicFrame();
@@ -372,12 +312,27 @@ function sendFrame(frame){
 /**********************************
 * Helpers
 ************************************/
+var removeDoubleValues = function(dataJson){
+	var newArray = [];
+	var nameArray = [];
+	
+	var singleEmotions = dataJson.DnnEmotions.SingleEmotions[0].Emotion;
+	for (var i = 0; i <singleEmotions.length; i++){
+		if(nameArray.indexOf(singleEmotions[i].Word[0]) == -1){
+			newArray.push(singleEmotions[i])
+		}
+		nameArray.push(singleEmotions[i].Word[0]);
+	}
+	dataJson.DnnEmotions.SingleEmotions[0].Emotion = newArray;
+	console.log(dataJson.DnnEmotions.SingleEmotions[0].Emotion);
+	return dataJson;
+}
 
-			var percentColors = [
-				{ pct: 0.0, color: { r: 0xFC, g: 0x2E, b: 0x1B } },
-				//{ pct: 0.5, color: { r: 0xB7, g: 0xF0, b: 0xFF } },
-				{ pct: 0.5, color: { r: 0xFF, g: 0xFC, b: 0xA5 } },
-				{ pct: 1.0, color: { r: 0x81, g: 0xEA, b: 0 } } ];
+var percentColors = [
+	{ pct: 0.0, color: { r: 0xFC, g: 0x2E, b: 0x1B } },
+	//{ pct: 0.5, color: { r: 0xB7, g: 0xF0, b: 0xFF } },
+	{ pct: 0.5, color: { r: 0xFF, g: 0xFC, b: 0xA5 } },
+	{ pct: 1.0, color: { r: 0x81, g: 0xEA, b: 0 } } ];
 
 var getColorForPercentage = function(pct) {
     for (var i = 1; i < percentColors.length - 1; i++) {
